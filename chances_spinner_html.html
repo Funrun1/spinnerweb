@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chances Wheel Spinner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0b0f;
+            color: #f1f1f4;
+        }
+        /* Custom scrollbar styling for options list */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #111115;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #2a2a35;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #3f3f52;
+        }
+        /* Pulse glow animation for the active/winner display */
+        @keyframes glowPulse {
+            0%, 100% { box-shadow: 0 0 15px rgba(187, 134, 252, 0.2); }
+            50% { box-shadow: 0 0 30px rgba(187, 134, 252, 0.6); }
+        }
+        .glow-active {
+            animation: glowPulse 2s infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 md:p-8">
+
+    <div class="w-full max-w-5xl bg-[#121217] rounded-3xl border border-[#23232f] p-6 md:p-8 shadow-2xl">
+        
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-purple-400 via-pink-500 to-indigo-400 bg-clip-text text-transparent">
+                ⚔️ Chances Wheel Spinner ⚔️
+            </h1>
+            <p class="text-sm text-[#8c8c9e] mt-2">Perfect delta-balancing algorithm with automatic limits!</p>
+        </div>
+
+        <!-- Mode Selector Toggle -->
+        <div class="flex bg-[#0b0b0f] p-1.5 rounded-2xl mb-8 max-w-md mx-auto border border-[#23232f]">
+            <button class="flex-1 py-3 text-sm font-semibold rounded-xl transition-all duration-300" id="mode-gacha" onclick="setMode('gacha')">
+                Different Percentages
+            </button>
+            <button class="flex-1 py-3 text-sm font-semibold rounded-xl transition-all duration-300" id="mode-equal" onclick="setMode('equal')">
+                Equal Chances
+            </button>
+        </div>
+
+        <!-- Main Content Area Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            <!-- Left Side: Interactive Wheel and Trigger Panel -->
+            <div class="lg:col-span-7 flex flex-col items-center">
+                
+                <!-- Wheel Canvas Box Container with Pointer Arrow -->
+                <div class="relative w-full max-w-[400px] aspect-square flex items-center justify-center mb-6">
+                    <!-- Dynamic pointer arrow at top center pointing down -->
+                    <div class="absolute -top-1 z-20 w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-t-[28px] border-t-rose-500 filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.5)]"></div>
+                    
+                    <canvas id="wheelCanvas" class="w-full h-full filter drop-shadow-[0_10px_25px_rgba(0,0,0,0.6)] rounded-full"></canvas>
+                </div>
+
+                <!-- Live Status & Roller Display Pedestal -->
+                <div class="w-full max-w-[400px] bg-[#0b0b0f] border-2 border-[#23232f] rounded-2xl p-6 text-center transition-all duration-300" id="displayBox">
+                    <div class="text-xs uppercase tracking-widest text-[#8c8c9e] font-bold mb-1">Result Display</div>
+                    <div class="text-2xl font-extrabold text-white tracking-wide" id="display">READY TO ROLL</div>
+                </div>
+
+                <!-- Large Spin Action Trigger Button -->
+                <button class="w-full max-w-[400px] mt-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 active:scale-95 text-white font-extrabold text-lg py-5 px-8 rounded-2xl transition-all duration-200 shadow-[0_4px_20px_rgba(16,185,129,0.3)] disabled:opacity-30 disabled:pointer-events-none uppercase tracking-wider" id="roll-btn" onclick="rollFruit()">
+                    Spin Wheel
+                </button>
+            </div>
+
+            <!-- Right Side: Item Creator & Dynamic Adjustment Form -->
+            <div class="lg:col-span-5 bg-[#16161f] border border-[#23232f] rounded-2xl p-6 h-full flex flex-col justify-between">
+                <div>
+                    <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <span>📋</span> Customize Options & Chances
+                    </h2>
+
+                    <!-- New Item Creator Form -->
+                    <div class="flex gap-2.5 mb-6">
+                        <input type="text" id="new-name" placeholder="Add option (e.g., Haafis)" class="flex-1 bg-[#0b0b0f] border border-[#2a2a38] text-white placeholder-[#52526b] px-4 py-3 rounded-xl text-sm focus:outline-none focus:border-[#bb86fc] transition-all">
+                        <button class="bg-[#bb86fc] hover:bg-[#c99dfd] text-black font-extrabold text-xl px-5 rounded-xl transition-all active:scale-95" onclick="addItem()">+</button>
+                    </div>
+
+                    <!-- Live Balanced Items List Wrapper -->
+                    <div class="space-y-3 max-h-[340px] overflow-y-auto pr-1 custom-scrollbar" id="item-list">
+                        <!-- Dynamic rows injected here -->
+                    </div>
+                </div>
+
+                <!-- Footer Total Indicator -->
+                <div class="mt-6 pt-4 border-t border-[#23232f] flex justify-between items-center text-xs text-[#8c8c9e] font-semibold">
+                    <span>Total Target Probabilities</span>
+                    <span class="text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md" id="totalProbabilityLabel">100.00%</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const colors = [
+            '#a855f7', // Purple
+            '#ec4899', // Pink
+            '#3b82f6', // Blue
+            '#f59e0b', // Amber
+            '#10b981', // Emerald
+            '#ef4444', // Red
+            '#06b6d4', // Cyan
+            '#6366f1'  // Indigo
+        ];
+
+        let items = [
+            { id: 1, name: "Hana", chance: 70 },
+            { id: 2, name: "Haaris", chance: 20 },
+            { id: 3, name: "Aadhil", chance: 9.5 },
+            { id: 4, name: "Hafeez", chance: 0.5 }
+        ];
+
+        let currentMode = 'gacha'; 
+        let isRolling = false;
+        
+        let wheelAngle = 0;
+        let angularVelocity = 0;
+        const friction = 0.985; 
+        let animationFrameId = null;
+        let lastActiveIndex = -1;
+
+        let audioCtx = null;
+        function playClickSound() {
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.04);
+                
+                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+                
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.04);
+            } catch (e) {
+                // AudioContext blocked
+            }
+        }
+
+        function initApp() {
+            setMode('gacha');
+            drawWheel();
+            setTimeout(drawWheel, 100);
+        }
+
+        function setMode(mode) {
+            if (isRolling) return;
+            currentMode = mode;
+            
+            const gachaBtn = document.getElementById('mode-gacha');
+            const equalBtn = document.getElementById('mode-equal');
+            
+            if (mode === 'gacha') {
+                gachaBtn.className = "flex-1 py-3 text-sm font-bold rounded-xl transition-all bg-[#bb86fc] text-black shadow-md shadow-[#bb86fc]/20";
+                equalBtn.className = "flex-1 py-3 text-sm font-semibold rounded-xl transition-all text-[#8c8c9e] hover:text-white";
+            } else {
+                equalBtn.className = "flex-1 py-3 text-sm font-bold rounded-xl transition-all bg-[#bb86fc] text-black shadow-md shadow-[#bb86fc]/20";
+                gachaBtn.className = "flex-1 py-3 text-sm font-semibold rounded-xl transition-all text-[#8c8c9e] hover:text-white";
+                
+                const equalShare = 100 / items.length;
+                items.forEach(item => item.chance = equalShare);
+            }
+            
+            renderList();
+            drawWheel();
+        }
+
+        function handlePercentageChange(id, value) {
+            if (currentMode === 'equal') return;
+
+            let newVal = parseFloat(value);
+            if (isNaN(newVal)) newVal = 0;
+            
+            newVal = Math.max(0, Math.min(100, newVal));
+
+            const index = items.findIndex(item => item.id === id);
+            if (index === -1) return;
+
+            if (items.length <= 1) {
+                items[index].chance = 100;
+                renderList();
+                drawWheel();
+                return;
+            }
+
+            const oldVal = items[index].chance;
+            const delta = newVal - oldVal;
+
+            // Dynamic Pivot Logic:
+            // Adjust the item directly below the edited one. If editing the lowest item, adjust the top item instead.
+            const targetIdx = (index === items.length - 1) ? 0 : index + 1;
+
+            const proposedTargetChance = items[targetIdx].chance - delta;
+            const clampedTargetChance = Math.max(0, Math.min(100, proposedTargetChance));
+            
+            // Re-calculate delta that was actually applied
+            const actualDeltaApplied = items[targetIdx].chance - clampedTargetChance;
+
+            // Assign changes to pivot and active item
+            items[targetIdx].chance = clampedTargetChance;
+            items[index].chance = oldVal + actualDeltaApplied;
+
+            normalizeToTotal100();
+            renderList();
+            drawWheel();
+        }
+
+        function normalizeToTotal100() {
+            const currentTotal = items.reduce((sum, item) => sum + item.chance, 0);
+            if (currentTotal === 0) {
+                const share = 100 / items.length;
+                items.forEach(item => item.chance = share);
+                return;
+            }
+            if (Math.abs(currentTotal - 100) > 0.0001) {
+                const factor = 100 / currentTotal;
+                items.forEach(item => {
+                    item.chance = item.chance * factor;
+                });
+            }
+        }
+
+        function renderList() {
+            const listContainer = document.getElementById('item-list');
+            listContainer.innerHTML = '';
+            
+            items.forEach((item, index) => {
+                const row = document.createElement('div');
+                row.className = `flex flex-col gap-2 p-4 bg-[#0e0e13] rounded-xl border border-[#1e1e28] hover:border-gray-700 transition-all duration-200`;
+                
+                const itemColor = colors[index % colors.length];
+                const isOnlyItem = items.length === 1;
+
+                row.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full" style="background-color: ${itemColor}"></span>
+                            <span class="font-semibold text-white text-sm truncate max-w-[150px]">${item.name}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="relative flex items-center">
+                                <input type="number" 
+                                    class="bg-[#1a1a24] text-white border border-[#2e2e3f] text-center w-20 py-1 px-2 rounded-lg text-sm font-semibold focus:outline-none focus:border-[#bb86fc]"
+                                    value="${item.chance.toFixed(2)}"
+                                    min="0" max="100" step="any"
+                                    onchange="handlePercentageChange(${item.id}, this.value)"
+                                    ${currentMode === 'equal' || isOnlyItem ? 'disabled' : ''}>
+                                <span class="absolute right-2 text-xs text-[#52526b] font-bold">%</span>
+                            </div>
+                            <button class="text-rose-500 hover:bg-rose-500/10 p-2 rounded-lg transition-all" onclick="deleteItem(${item.id})">✕</button>
+                        </div>
+                    </div>
+                    <!-- Slide adjust bar -->
+                    <div class="flex items-center gap-3">
+                        <input type="range" 
+                            min="0" max="100" step="0.01" 
+                            value="${item.chance}"
+                            class="w-full accent-[#bb86fc] h-1.5 rounded-lg appearance-none bg-[#1a1a24] cursor-pointer"
+                            oninput="handlePercentageChange(${item.id}, this.value)"
+                            ${currentMode === 'equal' || isOnlyItem ? 'disabled' : ''}>
+                    </div>
+                `;
+                listContainer.appendChild(row);
+            });
+
+            document.getElementById('roll-btn').disabled = items.length === 0;
+            const currentSum = items.reduce((sum, item) => sum + item.chance, 0);
+            document.getElementById('totalProbabilityLabel').innerText = `${currentSum.toFixed(2)}%`;
+        }
+
+        function addItem() {
+            const nameInput = document.getElementById('new-name');
+            if (!nameInput.value.trim()) return;
+
+            if (currentMode === 'equal') {
+                items.push({ id: Date.now(), name: nameInput.value.trim(), chance: 0 });
+                const equalShare = 100 / items.length;
+                items.forEach(item => item.chance = equalShare);
+            } else {
+                const newShare = items.length > 0 ? 10 : 100;
+                if (items.length > 0) {
+                    items[0].chance = Math.max(0, items[0].chance - newShare);
+                }
+                items.push({ id: Date.now(), name: nameInput.value.trim(), chance: newShare });
+            }
+
+            nameInput.value = '';
+            normalizeToTotal100();
+            renderList();
+            drawWheel();
+        }
+
+        function deleteItem(id) {
+            items = items.filter(item => item.id !== id);
+            
+            if (items.length > 0) {
+                if (currentMode === 'equal') {
+                    const equalShare = 100 / items.length;
+                    items.forEach(item => item.chance = equalShare);
+                } else {
+                    normalizeToTotal100();
+                }
+            }
+            renderList();
+            drawWheel();
+        }
+
+        function drawWheel() {
+            const canvas = document.getElementById('wheelCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            // Get parent container dimension, check if it exists and has layout
+            let size = canvas.parentElement ? canvas.parentElement.offsetWidth : 0;
+            if (size <= 0) {
+                // Return early if container layout is not ready to prevent negative radius crash
+                return;
+            }
+            
+            const scale = window.devicePixelRatio || 1;
+            canvas.width = size * scale;
+            canvas.height = size * scale;
+            ctx.scale(scale, scale);
+
+            const cx = size / 2;
+            const cy = size / 2;
+            // Ensure radius is always a positive number greater than 0
+            const radius = Math.max(1, size / 2 - 12);
+
+            ctx.clearRect(0, 0, size, size);
+
+            if (items.length === 0) {
+                ctx.fillStyle = '#16161f';
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#23232f';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+                
+                ctx.fillStyle = '#8c8c9e';
+                ctx.font = 'bold 16px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('ADD OPTIONS TO SPIN', cx, cy);
+                return;
+            }
+
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(wheelAngle);
+
+            let cumulativeAngle = 0;
+
+            items.forEach((item, index) => {
+                const sliceAngle = (item.chance / 100) * 2 * Math.PI;
+                const endAngle = cumulativeAngle + sliceAngle;
+
+                ctx.fillStyle = colors[index % colors.length];
+                
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.arc(0, 0, radius, cumulativeAngle, endAngle);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.strokeStyle = '#0b0b0f';
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+
+                if (item.chance > 2.5) { 
+                    ctx.save();
+                    const textAngle = cumulativeAngle + sliceAngle / 2;
+                    ctx.rotate(textAngle);
+                    
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 13px sans-serif';
+                    ctx.textAlign = 'right';
+                    ctx.textBaseline = 'middle';
+                    
+                    ctx.shadowColor = 'rgba(0,0,0,0.8)';
+                    ctx.shadowBlur = 4;
+
+                    const labelText = item.name.length > 11 ? item.name.substring(0, 10) + '..' : item.name;
+                    ctx.fillText(`${labelText} (${item.chance.toFixed(0)}%)`, radius - 20, 0);
+                    ctx.restore();
+                }
+
+                cumulativeAngle = endAngle;
+            });
+
+            ctx.restore();
+
+            ctx.fillStyle = '#0b0b0f';
+            ctx.beginPath();
+            ctx.arc(cx, cy, 22, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.strokeStyle = '#bb86fc';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function rollFruit() {
+            if (isRolling || items.length === 0) return;
+            isRolling = true;
+            
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            const displayBox = document.getElementById('displayBox');
+            const rollBtn = document.getElementById('roll-btn');
+            
+            displayBox.className = "w-full max-w-[400px] bg-[#0b0b0f] border-2 border-[#23232f] rounded-2xl p-6 text-center transition-all duration-300";
+            displayBox.style.boxShadow = 'none';
+            rollBtn.disabled = true;
+
+            angularVelocity = Math.random() * 0.35 + 0.35; 
+            lastActiveIndex = -1;
+
+            animateSpin();
+        }
+
+        function animateSpin() {
+            wheelAngle += angularVelocity;
+            angularVelocity *= friction;
+
+            if (wheelAngle >= Math.PI * 2) {
+                wheelAngle -= Math.PI * 2;
+            }
+
+            let pointerAngle = (1.5 * Math.PI - wheelAngle) % (2 * Math.PI);
+            if (pointerAngle < 0) pointerAngle += 2 * Math.PI;
+
+            let cumulativeAngle = 0;
+            let currentActiveIndex = -1;
+
+            for (let i = 0; i < items.length; i++) {
+                const sliceAngle = (items[i].chance / 100) * 2 * Math.PI;
+                const endAngle = cumulativeAngle + sliceAngle;
+                if (pointerAngle >= cumulativeAngle && pointerAngle < endAngle) {
+                    currentActiveIndex = i;
+                    break;
+                }
+                cumulativeAngle = endAngle;
+            }
+
+            if (currentActiveIndex !== lastActiveIndex && currentActiveIndex !== -1) {
+                playClickSound();
+                lastActiveIndex = currentActiveIndex;
+                document.getElementById('display').innerText = items[currentActiveIndex].name.toUpperCase();
+            }
+
+            drawWheel();
+
+            if (angularVelocity < 0.0012) {
+                isRolling = false;
+                angularVelocity = 0;
+                
+                const winner = items[currentActiveIndex];
+                const displayBox = document.getElementById('displayBox');
+                const rollBtn = document.getElementById('roll-btn');
+
+                document.getElementById('display').innerText = winner.name.toUpperCase();
+                rollBtn.disabled = false;
+
+                displayBox.classList.add("glow-active");
+                if (currentMode === 'gacha') {
+                    if (winner.chance < 2) {
+                        displayBox.style.borderColor = '#9c27b0'; 
+                    } else if (winner.chance < 10) {
+                        displayBox.style.borderColor = '#2196f3'; 
+                    } else {
+                        displayBox.style.borderColor = '#4caf50'; 
+                    }
+                } else {
+                    displayBox.style.borderColor = '#bb86fc'; 
+                }
+            } else {
+                animationFrameId = requestAnimationFrame(animateSpin);
+            }
+        }
+
+        window.addEventListener('resize', () => {
+            drawWheel();
+        });
+
+        window.onload = initApp;
+    </script>
+</body>
+</html>
